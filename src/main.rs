@@ -86,10 +86,10 @@ fn base64_encode(input: &str) -> String {
         };
 
         let chunk_str = match chunk.len() {
-            0 => "0".to_string(),
-            1 => "1".to_string(),
-            2 => "2".to_string(),
-            _ => decode_triplet(chunk),
+            0 => "".to_string(),
+            1 => decode_one(chunk),
+            2 => decode_two(chunk),
+            _ => decode_three(chunk),
         };
 
         result.push_str(chunk_str.as_ref());
@@ -100,9 +100,45 @@ fn base64_encode(input: &str) -> String {
     result
 }
 
-fn decode_triplet(bytes: &[u8]) -> String {
+fn decode_one(bytes: &[u8]) -> String {
     let alphabet = get_alphabet();
-    println!("{:08b} {:08b} {:08b}", bytes[0], bytes[1], bytes[2]);
+
+    let first_byte = bytes[0];
+    let first_sextet = first_byte >> 2;
+    let first_remainder = first_byte & 0b00000011;
+
+    let second_sextet = first_remainder << 4;
+
+    format!(
+        "{}{}==",
+        alphabet.get(&first_sextet).unwrap(),
+        alphabet.get(&second_sextet).unwrap(),
+    )
+}
+
+fn decode_two(bytes: &[u8]) -> String {
+    let alphabet = get_alphabet();
+
+    let first_byte = bytes[0];
+    let first_sextet = first_byte >> 2;
+    let first_remainder = first_byte & 0b00000011;
+
+    let second_byte = bytes[1];
+    let second_sextet = (second_byte >> 4) | (first_remainder << 4);
+    let second_remainder = second_byte & 0b00001111;
+
+    let third_sextet = second_remainder << 2;
+
+    format!(
+        "{}{}{}=",
+        alphabet.get(&first_sextet).unwrap(),
+        alphabet.get(&second_sextet).unwrap(),
+        alphabet.get(&third_sextet).unwrap(),
+    )
+}
+
+fn decode_three(bytes: &[u8]) -> String {
+    let alphabet = get_alphabet();
 
     let first_byte = bytes[0];
     let first_sextet = first_byte >> 2;
